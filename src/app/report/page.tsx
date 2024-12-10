@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { Container, Card, Row, Col, Button, Table } from "react-bootstrap";
 import { Product } from "@/app/types/product.type"; // Import type product nếu cần
 import { toast } from "react-toastify";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const ReportPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -38,6 +40,40 @@ const ReportPage = () => {
     (sum, product) => sum + product.price * product.stock,
     0
   );
+
+  const generatePDF = () => {
+    const doc = new jsPDF();
+
+    // Add title
+    doc.setFontSize(18);
+    doc.text("Product Report", 14, 22);
+
+    // Add summary
+    doc.setFontSize(12);
+    doc.text(`Total Products: ${products.length}`, 14, 32);
+    doc.text(`Total Stock: ${totalStock}`, 14, 39);
+    doc.text(`Total Sales: ${totalSales}`, 14, 46);
+    doc.text(`Total Value: $${totalValue}`, 14, 53);
+
+    // Add products table
+    autoTable(doc, {
+      startY: 60,
+      head: [["No", "Name", "Brand", "Price", "Stock", "Sold", "Value"]],
+      body: products.map((product, index) => [
+        index + 1,
+        product.name,
+        product.brand,
+        `$${product.price}`,
+        product.stock,
+        product.sold,
+        `$${product.price * product.stock}`,
+      ]),
+    });
+
+    // Save the PDF
+    doc.save("product-report.pdf");
+    toast.success("Report Generated Successfully!");
+  };
 
   return (
     <Container className="py-5">
@@ -104,10 +140,7 @@ const ReportPage = () => {
 
       <Row className="mt-4">
         <Col md={12} className="d-flex justify-content-center">
-          <Button
-            variant="primary"
-            onClick={() => toast.success("Report Generated!")}
-          >
+          <Button variant="primary" onClick={generatePDF}>
             Generate Report
           </Button>
         </Col>

@@ -5,6 +5,7 @@ import Container from "react-bootstrap/Container";
 import TableProduct from "@/components/app.tableProduct";
 
 import { Product } from "@/app/types/product.type";
+
 import { useEffect, useState } from "react";
 
 interface ResponseData<D> {
@@ -43,7 +44,7 @@ const HomePage = () => {
       <div className="py-5">
         <Container>
           <TableProduct
-            products={products?.sort(function (a: any, b: any) {
+            products={products.sort(function (a: any, b: any) {
               return b.id - a.id || b.title.localeCompare(a.title);
             })}
             refetch={fetchProducts}

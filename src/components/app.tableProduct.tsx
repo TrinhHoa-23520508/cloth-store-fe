@@ -23,7 +23,7 @@ const TableProduct = ({ products, refetch }: IProps) => {
   const [id, setId] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!products || products.length === 0) {
+  if (!products) {
     return <div className="alert alert-warning">No products found</div>;
   }
 
@@ -55,8 +55,61 @@ const TableProduct = ({ products, refetch }: IProps) => {
     setShowEdit(true);
     setId(id.toString());
   };
-  const handleImport = () => {
-    console.log("Import");
+  const handleImport = async () => {
+    try {
+      const file = fileInputRef.current?.files?.[0];
+      if (!file) {
+        toast.error("Please select a file");
+        return;
+      }
+
+      // Read the Excel file
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = e.target?.result;
+          const workbook = XLSX.read(data, { type: "binary" });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+
+          // Convert Excel data to JSON
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+          // Send data to API
+          const response = await fetch("/api/product/import", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(jsonData),
+          });
+
+          if (!response.ok) {
+            throw new Error("Import failed");
+          }
+
+          toast.success("Import products successfully!");
+          await refetch();
+
+          // Reset file input
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+        } catch (error) {
+          console.error("Error processing file:", error);
+          toast.error("Failed to process file");
+        }
+      };
+
+      reader.onerror = () => {
+        toast.error("Failed to read file");
+      };
+
+      reader.readAsBinaryString(file);
+    } catch (error) {
+      console.error("Error importing:", error);
+      toast.error("Failed to import products");
+    }
   };
 
   const handleExport = () => {
@@ -152,8 +205,12 @@ const TableProduct = ({ products, refetch }: IProps) => {
                 ref={fileInputRef}
                 style={{ display: "none" }}
                 accept=".xlsx, .xls"
+                onChange={handleImport}
               />
-              <Button variant="primary" onClick={handleImport}>
+              <Button
+                variant="primary"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 Import
               </Button>
             </div>
